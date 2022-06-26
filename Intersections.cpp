@@ -254,6 +254,24 @@ class Interval{
         arc1 = Circular_arc_2(Circle_2(o,r1*r1),Circular_arc_point_2(r1t1),Circular_arc_point_2(r1t2));
         arc2 = Circular_arc_2(Circle_2(o,r2*r2),Circular_arc_point_2(r2t1),Circular_arc_point_2(r2t2));  
     }
+    Interval( double r1, double r2,  double t1, double t2,  double originx, double originy)
+    {
+        Point_2 o = Point_2(originx,originy);
+        radius1 = r1; radius2 = r2;
+        theta1 = t1; theta2 = t2;
+        origin = o;
+
+        r1t1 = polarToCartesian(r1,t1,o);
+        r2t1 = polarToCartesian(r2,t1,o);
+        r1t2 = polarToCartesian(r1,t2,o);
+        r2t2 = polarToCartesian(r2,t2,o);
+
+
+        seg1 = Line_arc_2(r1t1,r2t1);
+        seg2 = Line_arc_2(r1t2,r2t2);
+        arc1 = Circular_arc_2(Circle_2(o,r1*r1),Circular_arc_point_2(r1t1),Circular_arc_point_2(r1t2));
+        arc2 = Circular_arc_2(Circle_2(o,r2*r2),Circular_arc_point_2(r2t1),Circular_arc_point_2(r2t2));  
+    }
 
     // void IntervalFromEndpoints(Point_2 r1t1, Point_2 r2t1, Point_2 r1t2, Point_2 r2t2){
     //     Line_2 l1 = Line_2(r1t1,r2t1);
@@ -270,7 +288,7 @@ class Interval{
 
 };
 
-void Interval_analysis(Interval I,Interval Iprime){
+void IntervalAnalysis(Interval I,Interval Iprime){
     Circular_arc_2 arcs[2] = {I.arc1,I.arc2};
     Circular_arc_2 arcprimes[2] = {Iprime.arc1,Iprime.arc2};
     Line_arc_2 segs[2] = {I.seg1,I.seg2};
@@ -469,48 +487,18 @@ bool pointIn(Interval I, Point_2 p){
         return false;
     }
 }
-void IntervalAnalysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,
-                      double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy){
-    Interval I1 = Interval(I1r1,I1r2,I1t1,I1t2, Point_2(I1ox,I1oy));
-    Interval I2 = Interval(I2r1,I2r2,I2t1,I2t2, Point_2(I2ox,I2oy));
-    // print(I1.arc2);
-    // print(I2.arc2);
-    Interval_analysis(I1,I2);
+// void IntervalAnalysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,
+//                       double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy){
+//     Interval I1 = Interval(I1r1,I1r2,I1t1,I1t2, Point_2(I1ox,I1oy));
+//     Interval I2 = Interval(I2r1,I2r2,I2t1,I2t2, Point_2(I2ox,I2oy));
+//     // print(I1.arc2);
+//     // print(I2.arc2);
+//     Interval_analysis(I1,I2);
 
-}
+// }
 
 int main() {
 
-    // Point_2 p(0,0), r(21,0),q(5,0);
-    // Point_2 p1(0,-4), p2(0,4);
-    // Point_2 r1(21,-1), r2(21,1);
-    // Circle_2 c1(p,4), c2(r,1);
-    // Circular_arc_point_2 p11(p1), p12(p2), r11(r1), r12(r2);
-    // Circular_arc_2 ar1(c1,p11,p12);
-    // Circular_arc_2 ar2(c2,r12,r11);
-    // Line_arc_2 l3(p,q);
-    // Line_arc_2 l1(p1,p2);
-    // Line_arc_2 l2(r1,r2);
-
-    // cout<< "Arc Arc result: ";
-    // double *po;
-    // po = arc_arc(ar1,ar2);
-    // for (int i=0;i<5;i++){
-    //         cout<<*(po+i)<<" ";
-    // }
-
-    // cout<< "\nSeg Arc result: ";
-    
-    // for (int i=0;i<5;i++){
-    //         cout<<*(seg_arc(l3,ar2)+i)<<" ";
-    // }
-
-    // cout<< "\nSeg Seg result: ";
-    // for (int i=0;i<5;i++){
-    //         cout<<*(seg_seg(l1,l2)+i)<<" ";
-    // }
-    // CGAL::draw()
-    
     
     // Interval I2 = Interval(0,1.732,-1.57,2,Point_2(-3,-3));
 
@@ -521,7 +509,7 @@ int main() {
     Interval I1 = Interval(1,2,0.5,1.7,Point_2(0,0));
     // print(I1.arc2);
     // print(I2.arc2);
-    Interval_analysis(I1,I2);
+    IntervalAnalysis(I1,I2);
     // print(arc_arc(I1.arc2,I2.arc2));
     
     
@@ -531,6 +519,8 @@ int main() {
 
 extern "C" {
     // Geek* Geek_new(){ return new Geek(); }
-    void interval_analysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy)
-    {IntervalAnalysis(I1r1,I1r2,I1t1,I1t2,I1ox,I1oy,I2r1,I2r2,I2t1,I2t2,I2ox,I2oy);}
+    // void interval_analysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy)
+    // {IntervalAnalysis(I1r1,I1r2,I1t1,I1t2,I1ox,I1oy,I2r1,I2r2,I2t1,I2t2,I2ox,I2oy);}
+    Interval* Interval_new(double r1, double r2,  double t1, double t2,  double originx, double originy){ return new Interval(r1, r2,  t1, t2,  originx, originy); }
+    void interval_analysis(Interval I1,Interval I2){ IntervalAnalysis(I1,I2); }
 }
