@@ -16,11 +16,13 @@ typedef CGAL::CK2_Intersection_traits<Circular_k, Line_2, Line_2>::type lin_lin_
 typedef CGAL::Circular_arc_point_2<Circular_k>    Circular_arc_point_2;
 
 using namespace std;
-
+class Interval;
 Point_2 polarToCartesian(double r, double phi, Point_2 o);
+double * CartesianToPolar(Point_2 p, Point_2 o);
 bool sortcol(const vector<double>& v1, const vector<double>& v2);
-void cartesianToPolarArr(double points[28][2],int num_pts);
-double pts[5];
+bool sortcol2(const vector<double>& v1, const vector<double>& v2);
+void cartesianToPolarArr(double points[28][2],int num_pts, Point_2 o);
+bool pointIn(Interval I, Point_2 p);
 void print(Point_2 p);
 void print(Circular_arc_point_2 p);
 void print(Circular_arc_2 ar);
@@ -230,8 +232,9 @@ class Interval{
     Circular_arc_2 arc1, arc2;
 
     Point_2 r1t1, r2t1, r1t2, r2t2;
+    
     friend Point_2 polarToCartesian(double r, double phi, Point_2 o);
-    friend void cartesianToPolarArr(double points[28][2],int num_pts);
+    friend void cartesianToPolarArr(double points[28][2],int num_pts, Point_2 o);
     
     Interval( double r1, double r2,  double t1, double t2,  Point_2 o)
     {
@@ -251,24 +254,6 @@ class Interval{
         arc1 = Circular_arc_2(Circle_2(o,r1*r1),Circular_arc_point_2(r1t1),Circular_arc_point_2(r1t2));
         arc2 = Circular_arc_2(Circle_2(o,r2*r2),Circular_arc_point_2(r2t1),Circular_arc_point_2(r2t2));  
     }
-
-    
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     // void IntervalFromEndpoints(Point_2 r1t1, Point_2 r2t1, Point_2 r1t2, Point_2 r2t2){
     //     Line_2 l1 = Line_2(r1t1,r2t1);
@@ -374,15 +359,28 @@ void Interval_analysis(Interval I,Interval Iprime){
         }
     }
 
-    // double *normal;
-    // normal = normalcy(I.origin,arcprimes[1]);
-    // // todo: add condition to ensure normalcy lies in I
-    // if(normal[4]== 1.0){
+    // Corner Cases
+    Point_2 corners[4] = {Iprime.r1t1, Iprime.r2t1, Iprime.r1t2, Iprime.r2t2};
 
-    //     points[num_pts][0] = normal[0];
-    //     points[num_pts][1] = normal[1];
-    //     num_pts += 1;
-    // }
+    for (int i=0;i<4;i++){
+        if(pointIn(I,corners[i])){
+            points[num_pts][0] = to_double(corners[i].x());
+            points[num_pts][1] = to_double(corners[i].y());
+            num_pts += 1;
+        }
+    }
+    
+
+    double *normal;
+    normal = normalcy(I.origin,arcprimes[1]);
+    
+    if(normal[4]== 1.0 ){
+        if (sqrt(normal[0]*normal[0]+normal[1]*normal[1])<I.radius2 && sqrt(normal[0]*normal[0]+normal[1]*normal[1])>I.radius1){
+            points[num_pts][0] = normal[0];
+            points[num_pts][1] = normal[1];
+            num_pts += 1;
+        }    
+    }
 
     // double *tangents;
     // tangents = tangency(I.origin,arcprimes[1]);
@@ -400,6 +398,8 @@ void Interval_analysis(Interval I,Interval Iprime){
     //     points[num_pts][1] = tangents[1];
     //     num_pts += 1;
     // }
+
+
     for(int ii=0;ii<num_pts;ii++){
         cout<<"("<<points[ii][0]<<","<<points[ii][1]<<")"<<endl;
 
@@ -408,27 +408,45 @@ void Interval_analysis(Interval I,Interval Iprime){
     // for (int i=0;i<num_pts;i++){
     //     cout<<*points[i]<<*(points[i]+1)<<endl;
     // }
-    cartesianToPolarArr(points,num_pts);
+    cartesianToPolarArr(points,num_pts,I.origin);
 }
 
 bool sortcol(const vector<double>& v1, const vector<double>& v2)
 {
     return v1[1] < v2[1];
 }
+bool sortcol2(const vector<double>& v1, const vector<double>& v2)
+{
+    return v1[0] < v2[0];
+}
 
-void cartesianToPolarArr(double points[28][2],int num_pts) {
+double * CartesianToPolar(Point_2 p, Point_2 o){
+    double x = to_double(p.x())-to_double(o.x());
+    double y = to_double(p.y())-to_double(o.y());
+    double * pt = new double[2]{sqrt(x * x + y * y), atan2(y , x)};
+    return pt;     
+}
+
+void cartesianToPolarArr(double points[28][2],int num_pts,Point_2 o) {
+    double x0,y0;
+    x0 = to_double(o.x());y0 = to_double(o.y());
     vector<vector<double>> cartez;
     for (int i=0;i<num_pts;i++){
         double x = *points[i]; double y = *(points[i]+1);
-        cartez.push_back({sqrt(x * x + y * y), atan2(y , x)});
+        cartez.push_back({sqrt((x-x0) * (x-x0) + (y-y0) * (y-y0)), atan2(y-y0 , x-x0)});
     }
     sort(cartez.begin(), cartez.end(), sortcol);
-    
+    vector<vector<double>> cartezt = cartez;
     for (int i=0;i<num_pts;i++){
         cout<<cartez[i][0]<<", " <<cartez[i][1]<<endl;
     }
+    sort(cartez.begin(), cartez.end(), sortcol2);
 
+    double theta1 = cartezt[0][1]; double theta2 = cartezt[num_pts-1][1];
+    double radius1 = cartez[0][0]; double radius2 = cartezt[num_pts-1][0];
+    cout<<"Interval"<<theta1<<", "<<theta2<<", "<<radius1<<", "<<radius2<<endl;
     
+        
 }
 
 Point_2 polarToCartesian(double r, double phi, Point_2 o) {
@@ -436,7 +454,21 @@ Point_2 polarToCartesian(double r, double phi, Point_2 o) {
     return Point_2(x,y);
 }
 
-
+bool pointIn(Interval I, Point_2 p){
+    double * arr;
+    arr = CartesianToPolar(p,I.origin);
+    if(arr[0]<=I.radius2 && arr[0]>=I.radius1){
+        if(arr[1]<=I.theta2 && arr[1]>=I.theta1){
+            return true;
+        } 
+        else{
+            return false;
+        }
+    }
+    else{
+        return false;
+    }
+}
 
 int main() {
 
@@ -471,11 +503,13 @@ int main() {
     // CGAL::draw()
     
     
-    Interval I2 = Interval(0,1.732,-1.57,2,Point_2(-3,-3));
+    // Interval I2 = Interval(0,1.732,-1.57,2,Point_2(-3,-3));
 
 
-    Interval I1 = Interval(0,3,3,5.5,Point_2(0,0));
-
+    // Interval I1 = Interval(0,3,3,5.5,Point_2(0,0));
+    
+    Interval I2 = Interval(1,2,2,3.5,Point_2(3,2));
+    Interval I1 = Interval(1,2,0.5,1.7,Point_2(0,0));
     // print(I1.arc2);
     // print(I2.arc2);
     Interval_analysis(I1,I2);
