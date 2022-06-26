@@ -469,6 +469,15 @@ bool pointIn(Interval I, Point_2 p){
         return false;
     }
 }
+void IntervalAnalysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,
+                      double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy){
+    Interval I1 = Interval(I1r1,I1r2,I1t1,I1t2, Point_2(I1ox,I1oy));
+    Interval I2 = Interval(I2r1,I2r2,I2t1,I2t2, Point_2(I2ox,I2oy));
+    // print(I1.arc2);
+    // print(I2.arc2);
+    Interval_analysis(I1,I2);
+
+}
 
 int main() {
 
@@ -518,4 +527,10 @@ int main() {
     
     
     // print(polarToCartesian(5,1.57096));
+}
+
+extern "C" {
+    // Geek* Geek_new(){ return new Geek(); }
+    void interval_analysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy)
+    {IntervalAnalysis(I1r1,I1r2,I1t1,I1t2,I1ox,I1oy,I2r1,I2r2,I2t1,I2t2,I2ox,I2oy);}
 }
