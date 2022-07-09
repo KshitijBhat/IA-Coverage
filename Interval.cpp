@@ -12,6 +12,7 @@ typedef CGAL::CK2_Intersection_traits<Circular_k, Circle_2, Circle_2>::type circ
 typedef CGAL::CK2_Intersection_traits<Circular_k, Circular_arc_2, Circular_arc_2>::type arc_arc_intersection_result;
 typedef CGAL::CK2_Intersection_traits<Circular_k, Line_arc_2, Circular_arc_2>::type seg_arc_intersection_result;
 typedef CGAL::CK2_Intersection_traits<Circular_k, Line_arc_2, Line_arc_2>::type seg_seg_intersection_result;
+typedef CGAL::CK2_Intersection_traits<Circular_k, Line_2, Line_arc_2>::type lin_seg_intersection_result;
 typedef CGAL::CK2_Intersection_traits<Circular_k, Line_2, Line_2>::type lin_lin_intersection_result;
 typedef CGAL::Circular_arc_point_2<Circular_k>    Circular_arc_point_2;
 
@@ -71,7 +72,7 @@ void print(double pts[5]){
 
 double * arc_arc( Circular_arc_2 ar1, Circular_arc_2 ar2)
 {
-    double * pts = new double[5]{0,0,0,0,0};
+    double * pts = new double[5]{2,2,2,2,0};
 
     vector<arc_arc_intersection_result> res;
     if(do_intersect(ar1,ar2)){
@@ -103,7 +104,7 @@ double * arc_arc( Circular_arc_2 ar1, Circular_arc_2 ar2)
 
 double * seg_seg( Line_arc_2 l1, Line_arc_2 l2)
 {
-    double * pts = new double[5]{0,0,0,0,0};
+    double * pts = new double[5]{3,3,3,3,0};
     vector<seg_seg_intersection_result> res;
     if(do_intersect(l1,l2)){
         intersection(l1,l2,back_inserter(res));
@@ -160,44 +161,47 @@ double * seg_arc( Line_arc_2 l, Circular_arc_2 ar)
 
 double * tangency( Point_2 p, Circular_arc_2 ar)
 {
-    double * pts = new double[5]{0,0,0,0,0};
+    double * pts = new double[5]{4,4,4,4,0};
     vector<arc_arc_intersection_result> res;
     
     Point_2 c = ar.center();
     double squared_radius = to_double(ar.squared_radius());
     double sq_dist = to_double(CGAL::squared_distance(p,c));
     double f_radius = sq_dist - squared_radius;
-    if(f_radius<0){
-        return pts;
-    }
-    else if(f_radius == 0){
+    if(f_radius == 0){
         pts[0] = to_double(p.x());
         pts[1] = to_double(p.y());
         pts[4] = 1.0; // one points of tangency, p on ar
-        return pts;
+        
     }
-    Circle_2 constr(p,f_radius);    
+    else if (f_radius > 0){
+        Circle_2 constr(p,f_radius);    
 
-    if (do_intersect(ar,constr)){
-        intersection(ar,constr,back_inserter(res));
-        using boostRetVal = std::pair<CGAL::Circular_arc_point_2<CGAL::Filtered_bbox_circular_kernel_2<CGAL::Circular_kernel_2<CGAL::Cartesian<CGAL::Gmpq>, CGAL::Algebraic_kernel_for_circles_2_2<CGAL::Gmpq> > > > , unsigned>;
-        int i = 0;
-        for( auto& element : res) {
-        auto algPoint = std::get<0>( boost::get< boostRetVal >(element) );
-        pts[i] = to_double(algPoint.x());
-        pts[i+1] = to_double(algPoint.y());
-        i = i+2;
+        if (do_intersect(ar,constr)){
+            intersection(ar,constr,back_inserter(res));
+            using boostRetVal = std::pair<CGAL::Circular_arc_point_2<CGAL::Filtered_bbox_circular_kernel_2<CGAL::Circular_kernel_2<CGAL::Cartesian<CGAL::Gmpq>, CGAL::Algebraic_kernel_for_circles_2_2<CGAL::Gmpq> > > > , unsigned>;
+            int i = 0;
+            for( auto& element : res) {
+            auto algPoint = std::get<0>( boost::get< boostRetVal >(element) );
+            pts[i] = to_double(algPoint.x());
+            pts[i+1] = to_double(algPoint.y());
+            i = i+2;
+            }
+            if(i==2){
+                pts[4] = 1.0; // disregard pts[2] and pts[3] (1 point of tangency)
+            }
+            if(i==4){
+            pts[4] = 2.0;   // 2 unique points of tangency
+            }  
         }
-        pts[4] = 2.0; // two unique points of tangency  
     }
-    
     return pts; //remember: pts is a pointer to the points array
 }
 
 
 double * normalcy( Point_2 p, Circular_arc_2 ar)
 {
-    double * pts = new double[5]{0,0,0,0,0};
+    double * pts = new double[5]{5,5,5,5,0};
     vector<seg_arc_intersection_result> res;
     Point_2 c = ar.center();
     Line_arc_2 constr(p,c);
@@ -209,7 +213,28 @@ double * normalcy( Point_2 p, Circular_arc_2 ar)
         auto algPoint = std::get<0>( boost::get< boostRetVal >(element) );
         pts[i] = to_double(algPoint.x());
         pts[i+1] = to_double(algPoint.y());
-        i = i+2;
+        i++;
+        }
+        pts[4] = 1.0; // one point of intersection, normalcy 
+    }
+    return pts;
+}
+
+double * normalcy( Point_2 p, Line_arc_2 l)
+{
+    double * pts = new double[5]{6,6,6,6,0};
+    vector<lin_seg_intersection_result> res;
+
+    Line_2 constr = l.supporting_line().perpendicular(p);
+    if (do_intersect(l,constr)){
+        intersection(constr,l,back_inserter(res));
+        using boostRetVal = std::pair<CGAL::Circular_arc_point_2<CGAL::Filtered_bbox_circular_kernel_2<CGAL::Circular_kernel_2<CGAL::Cartesian<CGAL::Gmpq>, CGAL::Algebraic_kernel_for_circles_2_2<CGAL::Gmpq> > > > , unsigned>;
+        int i = 0;
+        for( auto& element : res) {
+        auto algPoint = std::get<0>( boost::get< boostRetVal >(element) );
+        pts[i] = to_double(algPoint.x());
+        pts[i+1] = to_double(algPoint.y());
+        i++;
         }
         pts[4] = 1.0; // one point of intersection, normalcy 
     }
@@ -218,12 +243,12 @@ double * normalcy( Point_2 p, Circular_arc_2 ar)
 
 
 typedef struct IntervalStruct{
-    double radius1 = 69;
-    double radius2 = 69;
-    double theta1 = 69;
-    double theta2 = 69;
-    double origin1 = 69;
-    double origin2 = 69;
+    double radius1 = 0;
+    double radius2 = 0;
+    double theta1 = 0;
+    double theta2 = 0;
+    double origin1 = 0;
+    double origin2 = 0;
 }IntervalStruct;
 
 class Interval{
@@ -287,19 +312,6 @@ class Interval{
         arc2 = Circular_arc_2(Circle_2(o,IS.radius2*IS.radius2),Circular_arc_point_2(r2t1),Circular_arc_point_2(r2t2));  
     }
 
-    // void IntervalFromEndpoints(Point_2 r1t1, Point_2 r2t1, Point_2 r1t2, Point_2 r2t2){
-    //     Line_2 l1 = Line_2(r1t1,r2t1);
-    //     Line_2 l2 = Line_2(r1t2,r2t2);
-    //     vector<lin_lin_intersection_result> res;
-    //     intersection(l1,l2,back_inserter(res));
-    //     using boostRetVal = std::pair<CGAL::Circular_arc_point_2<CGAL::Filtered_bbox_circular_kernel_2<CGAL::Circular_kernel_2<CGAL::Cartesian<CGAL::Gmpq>, CGAL::Algebraic_kernel_for_circles_2_2<CGAL::Gmpq> > > > , unsigned>;
-
-    //     for( auto& element : res) {
-    //     auto algPoint = std::get<0>( boost::get< boostRetVal >(element) );
-    //     Point_2 o = Point_2(to_double(algPoint.x()),to_double(algPoint.y()));
-    //     }
-    // }    
-
 };
 
 
@@ -311,6 +323,21 @@ IntervalStruct IntervalAnalysis(Interval I,Interval Iprime){
     Line_arc_2 segprimes[2] = {Iprime.seg1,Iprime.seg2};
     double points[28][2];
     int num_pts = 0;
+    
+    
+
+    if(pointIn(Iprime,I.origin)){
+        IntervalStruct J;
+        J.radius1 = 1e-6;
+        J.radius2 = I.radius2;
+        J.theta1 = I.theta1;
+        J.theta2 = I.theta2;
+        J.origin1 = to_double(I.origin.x());
+        J.origin2 = to_double(I.origin.y());
+        cout<<" stop "<<endl;
+
+        return J;
+    }
 
     // All arcs intersecting arcs
     for (Circular_arc_2 ar: arcs){
@@ -416,6 +443,29 @@ IntervalStruct IntervalAnalysis(Interval I,Interval Iprime){
         }    
     }
 
+    double *normal0;
+    double *normal1;
+    normal0 = normalcy(I.origin,segprimes[0]);
+    normal1 = normalcy(I.origin,segprimes[1]);
+    
+    if(normal0[4]== 1.0 ){
+        if (pointIn(I,Point_2(normal0[0],normal0[1]))){
+            points[num_pts][0] = normal0[0];
+            points[num_pts][1] = normal0[1];
+            num_pts += 1;
+        }    
+    }
+
+    if(normal1[4]== 1.0 ){
+        if (pointIn(I,Point_2(normal1[0],normal1[1]))){
+            points[num_pts][0] = normal1[0];
+            points[num_pts][1] = normal1[1];
+            num_pts += 1;
+        }    
+    }
+
+
+
     double *tangents;
     tangents = tangency(I.origin,arcprimes[1]);
     // Added condition to ensure tangency lies in I
@@ -426,8 +476,8 @@ IntervalStruct IntervalAnalysis(Interval I,Interval Iprime){
             num_pts += 1;
         }
         if(pointIn(I,Point_2(tangents[2],tangents[3]))){
-            points[num_pts+1][0] = tangents[2];
-            points[num_pts+1][1] = tangents[3];
+            points[num_pts][0] = tangents[2];
+            points[num_pts][1] = tangents[3];
             num_pts += 1;
         }
         
@@ -440,15 +490,15 @@ IntervalStruct IntervalAnalysis(Interval I,Interval Iprime){
         }
     }
 
-
+    // cout<<" Points: "<<endl;
     // for(int ii=0;ii<num_pts;ii++){
     //     cout<<"("<<points[ii][0]<<","<<points[ii][1]<<")"<<endl;
 
     // }
     // cout<<"Num_pts: "<<num_pts<<endl;
-    // for (int i=0;i<num_pts;i++){
-    //     cout<<*points[i]<<*(points[i]+1)<<endl;
-    // }
+    if (num_pts == 0){
+        return IntervalStruct();
+    }
     double x0,y0;
     x0 = to_double(I.origin.x());y0 = to_double(I.origin.y());
     vector<vector<double>> cartez;
@@ -459,6 +509,10 @@ IntervalStruct IntervalAnalysis(Interval I,Interval Iprime){
     sort(cartez.begin(), cartez.end(), sortcol);
     vector<vector<double>> cartezt = cartez;
     sort(cartez.begin(), cartez.end(), sortcol2);
+
+    // for (int i=0;i<num_pts;i++){
+    //     cout<<"Cartez "<<cartez[i][0]<<" "<<cartez[i][1]<<endl;
+    // }
 
     double theta1 = cartezt[0][1]; double theta2 = cartezt[num_pts-1][1];
     double radius1 = cartez[0][0]; double radius2 = cartez[num_pts-1][0];
@@ -492,6 +546,7 @@ double * CartesianToPolar(Point_2 p, Point_2 o){
 
 double * cartesianToPolarArr(double points[28][2],int num_pts,Point_2 o) {
     double x0,y0;
+    
     x0 = to_double(o.x());y0 = to_double(o.y());
     vector<vector<double>> cartez;
     for (int i=0;i<num_pts;i++){
@@ -518,6 +573,7 @@ Point_2 polarToCartesian(double r, double phi, Point_2 o) {
 bool pointIn(Interval I, Point_2 p){
     double * arr;
     arr = CartesianToPolar(p,I.origin);
+
     if(arr[0]<=I.radius2 && arr[0]>=I.radius1){
         if(arr[1]<=I.theta2 && arr[1]>=I.theta1){
             return true;
@@ -530,15 +586,7 @@ bool pointIn(Interval I, Point_2 p){
         return false;
     }
 }
-// void IntervalAnalysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,
-//                       double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy){
-//     Interval I1 = Interval(I1r1,I1r2,I1t1,I1t2, Point_2(I1ox,I1oy));
-//     Interval I2 = Interval(I2r1,I2r2,I2t1,I2t2, Point_2(I2ox,I2oy));
-//     // print(I1.arc2);
-//     // print(I2.arc2);
-//     Interval_analysis(I1,I2);
 
-// }
 
 int main() {
 
@@ -548,24 +596,28 @@ int main() {
 
     // Interval I1 = Interval(0,3,3,5.5,Point_2(0,0));
     
-    Interval I2 = Interval(1,2,2,3.5,Point_2(3,2));
-    Interval I1 = Interval(1,2,0.5,1.7,Point_2(0,0));
+    // Interval I2 = Interval(1,2,2,3.5,Point_2(3,2));
+    // Interval I1 = Interval(1,2,0.5,1.7,Point_2(0,0));
+
+    Interval I2 = Interval(0,3,-0.6000000000000002,0.5999999999999998,Point_2(50, 0));
+    Interval I1 = Interval(0.2,1.3,-0.10000000000000009,2.4,Point_2( 0.90719224, -1.78241472));
+
     // print(I1.arc2);
     // print(I2.arc2);
-    cout<<IntervalAnalysis(I1,I2).radius1;
+    cout<<IntervalAnalysis(I1,I2).radius1<<endl;
+    cout<<IntervalAnalysis(I1,I2).radius2<<endl;
+    cout<<IntervalAnalysis(I1,I2).theta1<<endl;
+    cout<<IntervalAnalysis(I1,I2).theta2<<endl;
     // print(IntervalAnalysis(I1,I2).arc1);
     
     // print(arc_arc(I1.arc2,I2.arc2));
     
-    // print(polarToCartesian(5,1.57096));
+    
 }
 
 
 
 extern "C" {
-    // Geek* Geek_new(){ return new Geek(); }
-    // void interval_analysis(double I1r1,double I1r2, double I1t1, double I1t2, double I1ox,double I1oy,double I2r1,double I2r2, double I2t1, double I2t2, double I2ox,double I2oy)
-    // {IntervalAnalysis(I1r1,I1r2,I1t1,I1t2,I1ox,I1oy,I2r1,I2r2,I2t1,I2t2,I2ox,I2oy);}
     Interval* Interval_new(double r1, double r2,  double t1, double t2,  double originx, double originy){ return new Interval(r1, r2,  t1, t2,  Point_2(originx, originy)); }
     IntervalStruct* interval_analysis(IntervalStruct I1,IntervalStruct I2){return new IntervalStruct(IntervalAnalysis(Interval(I1),Interval(I2)));}
 }
