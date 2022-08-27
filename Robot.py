@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from Interval import *
-import cv2
-import json
 
 np.random.seed(3)
 
@@ -12,7 +10,7 @@ class Robot:
     color = 'blue'
     Δt = 1
     dt = 0.1
-    obstacles = None
+    obstacles = []
     max_v = 30
     max_w = 1.5
     num_samples = 64
@@ -40,17 +38,19 @@ class Robot:
 
     @property
     def interval_hull(self):
+        r = 2
         theta1 = self.yaw - (self.max_w/2)*self.Δt
         theta2 = self.yaw + (self.max_w/2)*self.Δt
-        origin = np.array([self.x_bot+self.radius*(np.cos(theta1)+np.cos(theta2))/(1e-6 + np.sin(theta1-theta2)),
-                       self.y_bot+self.radius*(np.sin(theta1)+np.sin(theta2))/(1e-6 + np.sin(theta1-theta2))])
+        origin = np.array([self.x_bot+r*self.radius*(np.cos(theta1)+np.cos(theta2))/(1e-6 + np.sin(theta1-theta2)),
+                       self.y_bot+r*self.radius*(np.sin(theta1)+np.sin(theta2))/(1e-6 + np.sin(theta1-theta2))])
 
-        n = self.radius/np.sin(1e-6+(theta2-theta1)/2)
-        nu1 = n - self.radius
-        nu2 = n + self.radius + (self.max_v)*self.Δt
+        n = self.radius*r/np.sin(1e-6+(theta2-theta1)/2)
+        nu1 = n - self.radius*r
+        nu2 = n + self.radius*r + (self.max_v)*self.Δt
         return Interval(nu1,nu2,theta1,theta2,origin)
     
     def collision_free_command(self,ax=None):
+        collide = False
         v = self.max_v*np.ones(self.num_samples)
         w = np.array([(2*i*self.max_w/(self.num_samples-1)-self.max_w) for i in range(self.num_samples)])
         for other_robot in self.fellows:
@@ -64,9 +64,28 @@ class Robot:
             w1 = (J.theta1-self.yaw)/self.Δt
             w2 = (J.theta2-self.yaw)/self.Δt
             vj = (J.radius1/self.Δt)
+            # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
+            for i in range(self.num_samples):
+                if w[i]>= 2*w1 and w[i]<= 2*w2:
+                    v[i] = min(v[i],vj)/2
+                    collide = True
+                    
+        for obstacle in self.obstacles:
+
+            J = self.interval.interval_analysis(obstacle)
+            # if not J.radius2==0:
+            if ax is not None:
+                J.draw(ax,"green")
+            # changes w's in J
+
+            w1 = (J.theta1-self.yaw)/self.Δt
+            w2 = (J.theta2-self.yaw)/self.Δt
+            vj = (J.radius1/self.Δt)
+            # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
             for i in range(self.num_samples):
                 if w[i]>= 2*w1 and w[i]<= 2*w2:
                     v[i] = min(v[i],vj)
+                    collide = True            
 
         # for obstacle in self.obstacles:
         #     print(obstacle)
@@ -89,12 +108,15 @@ class Robot:
         #     y = self.y_bot + np.cumsum(v[i] * np.sin(yaw)) * self.dt
         #     if ax is not None:
         #         ax.plot(x,y)
+        # if collide:
+        #     return v[-1],w[-1] 
         return np.random.choice(v),np.random.choice(w)    
 
     # def choose_command(v,w):
     #     return np.random.choice(v),np.random.choice(w)    
 
     def move(self,v,w,ax=None):
+        """Moves by Δt"""
         w = w*np.ones(int(self.Δt//self.dt))
         yaw = self.yaw + np.cumsum(w) * self.dt
         x = self.x_bot + np.cumsum(v * np.cos(yaw)) * self.dt
@@ -107,10 +129,11 @@ class Robot:
         else:
             self.yaw = yaw[-1]
 
-        # return x,y,yaw
+        return x,y,yaw
 
 
     def move2(self,v,w,ax=None):
+        """Moves only by dt"""
         yaw = self.yaw + w * self.dt
         x = self.x_bot + v * np.cos(yaw) * self.dt
         y = self.y_bot + v * np.sin(yaw) * self.dt
@@ -122,7 +145,7 @@ class Robot:
         else:
             self.yaw = yaw
 
-        # return x,y,yaw
+        return x,y,yaw
 
     def draw(self,ax):
         bot_circle = plt.Circle( (self.x_bot, self.y_bot),self.radius,color=self.bot_color)
@@ -136,116 +159,6 @@ class Robot:
         cls.obstacles = obstacles
 
 
-if __name__ == "__main__":
-    # robot = Robot(4,4,0,100,1)
-    # robot = Robot(4,4,3.14,100,1)
-    # obstacle = Interval(0,40,1,2.5,[50,-40])
-    # obstacle = Interval(0,40,-1,1,[-40,40])
-    # robot1 = Robot(-50,-40,0,30,1)
-    # robot1.bot_color = 'red'
-    # v = robot.max_v*np.ones(robot.num_samples)
-    # w = np.array([(2*i*robot.max_w/(robot.num_samples-1)-robot.max_w) for i in range(robot.num_samples)])
-    # fig,ax = plt.subplots(figsize=(8,8))
-    # ax. set_aspect('equal')
-    # robot.draw(ax)
-    # robot.draw(ax)
-    # robot.interval_hull.draw(ax,color='b')
-    # robot.interval.draw(ax,color='b')
 
-    # robot1.draw(ax)
-    # robot1.interval.draw(ax,color='r')
-    # robot1.interval_hull.draw(ax,color='r')
-    # obstacle.draw(ax,'red')
-    # J = robot.interval.interval_analysis(robot1.interval_hull)
-    # J.draw(ax,"green")
-    # changes w's in J
-
-    # # something SUS about this
-    # w1 = (J.theta1-robot.yaw)/robot.Δt
-    # w2 = (J.theta2-robot.yaw)/robot.Δt
-
-    # vj = J.radius1/robot.Δt
-    # for i in range(robot.num_samples):
-    #     if w[i]>=2*w1 and w[i]<=2*w2:
-    #         v[i] = min(v[i],vj)
-
-    # for i in range(robot.num_samples):
-    #     x,y,yaw = robot.move(v[i],w[i])
-    #     plt.plot(x,y)
-    # plt.show()
-
-
-    # with open('obstacles copy.json') as f:   
-    #     data = json.load(f)
-    # obstacles = []
-    # for obstacle in data['obstacles']:
-    #     params,center = obstacle['params'],obstacle['center']
-    #     obstacles.append(Interval(*params,center))
-    # arena = cv2.imread("arena1.png")
-    # arena = (1-cv2.cvtColor(arena,cv2.COLOR_RGB2GRAY)/255).astype('int')
-    #robot = Robot(680,600,0,80,0,1.57,0)
-    #robot = Robot(800,800,0.5,100,0,1,0)
-    # robot = Robot(400,500,0,80,1)
-    #robot = Robot(600,900,3.14,80,0,1,0)
-    #robot = Robot(900,800,4.2,100,0,1,0)
-    #robot = Robot(800,770,4.5,80,0,1,0)
-
-
-    robot1 = Robot(200,200,-np.pi/2,35,1.13)
-    robot2 = Robot(100,200, 0,35,1.13)
-    robot3 = Robot(250,200, 0.5,35,1.13)
-    robot4 = Robot(200,250, np.pi/2,35,1.13)
-
-    robot1.fellows = [robot2,robot3,robot4]
-    robot2.fellows = [robot1,robot3,robot4]
-    robot3.fellows = [robot1,robot2,robot4]
-    robot4.fellows = [robot1,robot2,robot3]
-    # robot.set_environment(obstacles)
-    
-    fig,ax = plt.subplots(figsize=(8,8))
-
-    for i in range(5000):
-        plt.cla()
-
-        ax. set_aspect('equal')
-        ax.set_xlim([0, 524])
-        ax.set_ylim([0, 524])
-        # ax.imshow(arena,cmap = plt.cm.gray_r,origin = 'lower')
-        # for obstacle in obstacles:
-            # obstacle.draw(ax,'red')
-        robot1.draw(ax)
-        robot1.interval_hull.draw(ax,'blue')
-        robot1.interval.draw(ax,'blue')
-        robot2.draw(ax)
-        robot2.interval_hull.draw(ax,'red')
-        robot2.interval.draw(ax,'red')
-        robot3.draw(ax)
-        robot3.interval_hull.draw(ax,'magenta')
-        robot3.interval.draw(ax,'magenta')
-        robot4.draw(ax)
-        robot4.interval_hull.draw(ax,'black')
-        robot4.interval.draw(ax,'black')
-        
-        if i%(robot1.Δt//robot1.dt) == 0:
-            v1,w1 = robot1.collision_free_command(ax)
-            
-
-            v2,w2 = robot2.collision_free_command(ax)
-
-            v3,w3 = robot3.collision_free_command(ax)
-
-            v4,w4 = robot4.collision_free_command(ax)
-            plt.savefig(f'captures/fig{i}.png',bbox_inches='tight',dpi=133)
-
-        robot1.move2(v1,w1)
-        robot2.move2(v2,w2)
-        robot3.move2(v3,w3)
-        robot4.move2(v4,w4)
-    
-        # plt.axis("off")
-        # plt.savefig(f'captures/fig{i}.png',bbox_inches='tight',dpi=133)
-        # plt.show()
-        plt.pause(0.000000001)
-    
     
         
