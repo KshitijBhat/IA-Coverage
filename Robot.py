@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from Interval import *
 
-np.random.seed(3)
+np.random.seed(5)
 
 class Robot:
     radius = 15
@@ -14,6 +14,7 @@ class Robot:
     max_v = 30
     max_w = 1.5
     num_samples = 64
+    r = 2
 
     
     def __init__(self,x_bot,y_bot,yaw,v,w):
@@ -38,7 +39,7 @@ class Robot:
 
     @property
     def interval_hull(self):
-        r = 2
+        r = self.r
         theta1 = self.yaw - (self.max_w/2)*self.Δt
         theta2 = self.yaw + (self.max_w/2)*self.Δt
         origin = np.array([self.x_bot+r*self.radius*(np.cos(theta1)+np.cos(theta2))/(1e-6 + np.sin(theta1-theta2)),
@@ -55,37 +56,45 @@ class Robot:
         w = np.array([(2*i*self.max_w/(self.num_samples-1)-self.max_w) for i in range(self.num_samples)])
         for other_robot in self.fellows:
 
-            J = self.interval.interval_analysis(other_robot.interval_hull)
+            J = self.interval_hull.interval_analysis(other_robot.interval)
             # if not J.radius2==0:
             if ax is not None:
                 J.draw(ax,"green")
             # changes w's in J
 
+            # w1 = (J.theta1-self.yaw)/self.Δt
+            # w2 = (J.theta2-self.yaw)/self.Δt
+
             w1 = (J.theta1-self.yaw)/self.Δt
             w2 = (J.theta2-self.yaw)/self.Δt
-            vj = (J.radius1/self.Δt)
+            
+            #vj = (J.radius1/self.Δt)
             # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
+            r = self.r
+            vj = (J.radius1-self.interval_hull.radius1-2*r*self.radius)/self.Δt
+
             for i in range(self.num_samples):
                 if w[i]>= 2*w1 and w[i]<= 2*w2:
-                    v[i] = min(v[i],vj)/2
+                    v[i] = max(min(v[i],vj),0)
                     collide = True
+                    print("collision ")
                     
-        for obstacle in self.obstacles:
+        # for obstacle in self.obstacles:
 
-            J = self.interval.interval_analysis(obstacle)
-            # if not J.radius2==0:
-            if ax is not None:
-                J.draw(ax,"green")
-            # changes w's in J
+        #     J = self.interval.interval_analysis(obstacle)
+        #     # if not J.radius2==0:
+        #     if ax is not None:
+        #         J.draw(ax,"green")
+        #     # changes w's in J
 
-            w1 = (J.theta1-self.yaw)/self.Δt
-            w2 = (J.theta2-self.yaw)/self.Δt
-            vj = (J.radius1/self.Δt)
-            # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
-            for i in range(self.num_samples):
-                if w[i]>= 2*w1 and w[i]<= 2*w2:
-                    v[i] = min(v[i],vj)
-                    collide = True            
+        #     w1 = (J.theta1-self.yaw)/self.Δt
+        #     w2 = (J.theta2-self.yaw)/self.Δt
+        #     vj = (J.radius1/self.Δt)
+        #     # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
+        #     for i in range(self.num_samples):
+        #         if w[i]>= 2*w1 and w[i]<= 2*w2:
+        #             v[i] = min(v[i],vj)
+        #             collide = True            
 
         # for obstacle in self.obstacles:
         #     print(obstacle)
@@ -108,9 +117,14 @@ class Robot:
         #     y = self.y_bot + np.cumsum(v[i] * np.sin(yaw)) * self.dt
         #     if ax is not None:
         #         ax.plot(x,y)
-        # if collide:
-        #     return v[-1],w[-1] 
-        return np.random.choice(v),np.random.choice(w)    
+        if collide:
+            if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
+                vex,wex = v[0],w[0]
+            else:
+                vex,wex = v[-1],w[-1]
+            return vex,wex 
+        # return np.random.choice(v),np.random.choice(w)    
+        return v[len(v)//2],w[len(v)//2]   
 
     # def choose_command(v,w):
     #     return np.random.choice(v),np.random.choice(w)    
@@ -143,7 +157,7 @@ class Robot:
             self.x_bot = x
             self.y_bot = y
         else:
-            self.yaw = yaw
+            self.yaw = np.random.normal()*np.pi/6
 
         return x,y,yaw
 
