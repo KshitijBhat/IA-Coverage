@@ -72,12 +72,40 @@ class Robot:
             # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
             r = self.r
             vj = (J.radius1-self.interval_hull.radius1-2*r*self.radius)/self.Δt
-
+            print("J radius1 = ",J.radius1)
             for i in range(self.num_samples):
                 if w[i]>= 2*w1 and w[i]<= 2*w2:
                     v[i] = max(min(v[i],vj),0)
                     collide = True
-                    print("collision ")
+        
+        for obstacle in self.obstacles:
+
+            J = self.interval_hull.interval_analysis(obstacle)
+            # if not J.radius2==0:
+            if ax is not None:
+                J.draw(ax,"green")
+            # changes w's in J
+
+            # w1 = (J.theta1-self.yaw)/self.Δt
+            # w2 = (J.theta2-self.yaw)/self.Δt
+
+            w1 = (J.theta1-self.yaw)/self.Δt
+            w2 = (J.theta2-self.yaw)/self.Δt
+            
+            #vj = (J.radius1/self.Δt)
+            # vj = ((J.radius2-J.radius1)-2*self.radius)/self.Δt
+            r = self.r
+            vj = (J.radius1-self.interval_hull.radius1-2*r*self.radius)/self.Δt
+            
+            if not J.radius1==0.0:
+                collide = True
+                obstacle.draw(ax, "magenta")
+                print('J radius1: ',J.radius1)
+            # print("J radius1 = ",J.radius1)
+            for i in range(self.num_samples):
+                if w[i]>= 2*w1 and w[i]<= 2*w2:
+                    v[i] = max(min(v[i],vj),0)
+            
                     
         # for obstacle in self.obstacles:
 
@@ -118,12 +146,14 @@ class Robot:
         #     if ax is not None:
         #         ax.plot(x,y)
         if collide:
+            print("Collision")
             if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
                 vex,wex = v[0],w[0]
             else:
                 vex,wex = v[-1],w[-1]
             return vex,wex 
-        # return np.random.choice(v),np.random.choice(w)    
+        # return np.random.choice(v),np.random.choice(w)
+        print("No collision")    
         return v[len(v)//2],w[len(v)//2]   
 
     # def choose_command(v,w):
@@ -136,15 +166,18 @@ class Robot:
         x = self.x_bot + np.cumsum(v * np.cos(yaw)) * self.dt
         y = self.y_bot + np.cumsum(v * np.sin(yaw)) * self.dt
         
-        if (x[-1]<=500 and x[-1]>=20 and y[-1]<=500 and y[-1]>=20):
-            self.yaw = yaw[-1]
-            self.x_bot = x[-1]
-            self.y_bot = y[-1]
-        else:
-            self.yaw = yaw[-1]
+        # if (x[-1]<=500 and x[-1]>=20 and y[-1]<=500 and y[-1]>=20):
+        #     self.yaw = yaw[-1]
+        #     self.x_bot = x[-1]
+        #     self.y_bot = y[-1]
+        # else:
+        #     self.yaw = yaw[-1]
 
-        return x,y,yaw
-
+        # return x,y,yaw
+        self.yaw = yaw[-1]
+        self.x_bot = x[-1]
+        self.y_bot = y[-1]
+        
 
     def move2(self,v,w,ax=None):
         """Moves only by dt"""
@@ -152,14 +185,17 @@ class Robot:
         x = self.x_bot + v * np.cos(yaw) * self.dt
         y = self.y_bot + v * np.sin(yaw) * self.dt
         
-        if (x<=500 and x>=20 and y<=500 and y>=20):
-            self.yaw = yaw
-            self.x_bot = x
-            self.y_bot = y
-        else:
-            self.yaw = np.random.normal()*np.pi/6
-
-        return x,y,yaw
+        # if (x<=500 and x>=20 and y<=500 and y>=20):
+        #     self.yaw = yaw
+        #     self.x_bot = x
+        #     self.y_bot = y
+        # else:
+        #     self.yaw = np.random.normal()*np.pi/6
+        
+        # return x,y,yaw
+        self.yaw = yaw
+        self.x_bot = x
+        self.y_bot = y
 
     def draw(self,ax):
         bot_circle = plt.Circle( (self.x_bot, self.y_bot),self.radius,color=self.bot_color)
