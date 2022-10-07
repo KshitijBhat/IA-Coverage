@@ -22,7 +22,7 @@ if __name__ == "__main__":
         obstacle.draw(ax,'red')
     # plt.show()
 
-    robot1 = Robot(200,200,np.pi/2,35,1.13)
+    robot1 = Robot(200,200,np.pi/2+0.001,35,1.13)
     # robot2 = Robot(800,400, 0,35,1.13)
     # robot3 = Robot(400,400, 0.5,35,1.13)
     # robot4 = Robot(200,800, np.pi/2,35,1.13)
@@ -91,5 +91,5 @@ if __name__ == "__main__":
         # plt.axis("off")
         # plt.savefig(f'captures/fig{i}.png',bbox_inches='tight',dpi=133)
         # plt.show()
-        plt.pause(0.0000001)
+        plt.pause(0.1000001)
     

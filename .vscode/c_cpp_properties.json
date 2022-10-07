@@ -4,8 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/usr/include/cgal_libs/include/CGAL/",
-                "/usr/include/cgal_libs/include"
+                "/usr/local/include/CGAL/"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
