@@ -5,7 +5,7 @@ from Interval import *
 np.random.seed(5)
 
 class Robot:
-    radius = 15
+    radius = 20
     bot_color = 'b'
     color = 'blue'
     Δt = 1
@@ -51,6 +51,7 @@ class Robot:
 
     def collision_free_command(self,ax=None):
         collide = False
+        collide1 = False
         v = self.max_v*np.ones(self.num_samples)
         w = np.array([(2*i*self.max_w/(self.num_samples-1)-self.max_w) for i in range(self.num_samples)])
 
@@ -59,13 +60,13 @@ class Robot:
             if ax is not None:
                 J.draw(ax,"green")
 
-            w1 = (J.theta1-self.yaw)/self.Δt
-            w2 = (J.theta2-self.yaw)/self.Δt
+            w1 = (J.theta1+self.yaw)/self.Δt
+            w2 = (J.theta2+self.yaw)/self.Δt
             r = self.r
             vj = (J.radius1-self.interval_hull.radius1-2*r*self.radius)/self.Δt
 
             if not J.radius1==0.0:
-                collide = True
+                collide1 = True
 
             for i in range(self.num_samples):
                 if w[i]>= 2*w1 and w[i]<= 2*w2:
@@ -83,21 +84,103 @@ class Robot:
             
             if not J.radius1==0.0:
                 collide = True
-                obstacle.draw(ax, "magenta")
+                if ax is not None:
+                    obstacle.draw(ax, "magenta")
 
             for i in range(self.num_samples):
                 if w[i]>= 2*w1 and w[i]<= 2*w2:
                     v[i] = max(min(v[i],vj),0)
 
+        # if collide and not collide1:
+        #     print("Collision")
+        #     if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
+        #         vex,wex = v[0],w[0]
+        #     else:
+        #         vex,wex = v[-1],w[-1]
+        #     return vex,wex 
+        # if collide1:
+        #     if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
+        #         vex,wex = v[0],w[0]
+        #     else:
+        #         vex,wex = v[-1],w[-1]
+        #     return vex,wex
         if collide:
-            print("Collision")
-            if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
-                vex,wex = v[0],w[0]*(1+0.08*np.random.uniform(0, 1)) # something better is needed here
-            else:
-                vex,wex = v[-1],w[-1]*(1+0.08*np.random.uniform(0, 1)) # something better is needed here
+            rand_choice = np.random.choice(range(self.num_samples))
+            vex,wex = v[rand_choice],w[rand_choice]
             return vex,wex 
         print("No collision")    
         return self.max_v,w[len(v)//2]   
+
+    def collision_free_command2(self,ax=None):
+        collide_robot = False
+        collide_obstacle = False
+        v = self.max_v*np.ones(self.num_samples)
+        w = np.array([(2*i*self.max_w/(self.num_samples-1)-self.max_w) for i in range(self.num_samples)])
+
+        for other_robot in self.fellows:
+            J = self.interval.interval_analysis(other_robot.interval_hull)
+            if ax is not None:
+                J.draw(ax,"green")
+
+            w1 = (J.theta1-self.yaw)/self.Δt
+            w2 = (J.theta2-self.yaw)/self.Δt
+            r = self.r
+            vj = J.radius1/self.Δt #(J.radius1-self.interval_hull.radius1-2*r*self.radius)/self.Δt
+
+            if not J.radius1==0.0:
+                collide_robot = True
+
+            for i in range(self.num_samples):
+                if w[i]>= 2*w1 and w[i]<= 2*w2:
+                    v[i] = max(min(v[i],vj),0)
+        
+        for obstacle in self.obstacles:
+            J = self.interval_hull.interval_analysis(obstacle)
+            if ax is not None:
+                J.draw(ax,"green")
+
+            w1 = (J.theta1-self.yaw)/self.Δt
+            w2 = (J.theta2-self.yaw)/self.Δt
+            r = self.r
+            vj = (J.radius1-self.interval_hull.radius1-2*r*self.radius)/self.Δt
+            
+            if not J.radius1==0.0:
+                collide_obstacle = True
+                if ax is not None:
+                    obstacle.draw(ax, "magenta")
+
+            for i in range(self.num_samples):
+                if w[i]>= 2*w1 and w[i]<= 2*w2:
+                    v[i] = max(min(v[i],vj),0)
+
+        # if collide and not collide1:
+        #     print("Collision")
+        #     if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
+        #         vex,wex = v[0],w[0]
+        #     else:
+        #         vex,wex = v[-1],w[-1]
+        #     return vex,wex 
+        # if collide1:
+        #     if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
+        #         vex,wex = v[0],w[0]
+        #     else:
+        #         vex,wex = v[-1],w[-1]
+        #     return vex,wex
+        if collide_robot:
+            rand_choice = np.random.choice(range(self.num_samples))
+            vex,wex = v[rand_choice],w[rand_choice]
+            return vex,wex   
+        if collide_obstacle:
+            if np.sum(v[:len(v)//2])>np.sum(v[len(v)//2:]):
+                vex,wex = v[0],w[0]
+            else:
+                vex,wex = v[-1],w[-1]
+            return vex,wex        
+
+        print("No collision")    
+        return self.max_v,w[len(v)//2]   
+
+
 
     def move(self,v,w,ax=None):
         """Moves by Δt"""
@@ -109,6 +192,7 @@ class Robot:
         self.yaw = yaw[-1]
         self.x_bot = x[-1]
         self.y_bot = y[-1]
+        #return x[-1],y[-1],yaw[-1]
         
     def move2(self,v,w,ax=None):
         """Moves only by dt"""

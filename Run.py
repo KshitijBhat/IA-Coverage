@@ -9,7 +9,7 @@ from Robot import Robot
 
 if __name__ == "__main__":
     fig,ax = plt.subplots(figsize=(8,8))
-    with open('environments/room.json') as f:   
+    with open('environments/room1.json') as f:   
         data = json.load(f)
     obstacles = []
     for obstacle in data['obstacles']:
@@ -43,54 +43,57 @@ if __name__ == "__main__":
         ax.set_ylim([0, 1024])
         # ax.imshow(arena,cmap = plt.cm.gray_r,origin = 'lower')
  
-        for obstacle in obstacles:
-            obstacle.draw(ax,'red')
+        # for obstacle in obstacles:
+        #     obstacle.draw(ax,'red')
 
         robot1.draw(ax)
-        robot1.interval_hull.draw(ax,'blue')
-        robot1.interval.draw(ax,'blue')
+
         robot2.draw(ax)
-        robot2.interval_hull.draw(ax,'red')
-        robot2.interval.draw(ax,'red')
         robot3.draw(ax)
-        robot3.interval_hull.draw(ax,'magenta')
-        robot3.interval.draw(ax,'magenta')
         robot4.draw(ax)
-        robot4.interval_hull.draw(ax,'black')
+
+
+        robot1.interval.draw(ax,'blue')
+        robot1.interval_hull.draw(ax,'blue')
+        robot2.interval.draw(ax,'red')
+        robot2.interval_hull.draw(ax,'red')
+        robot3.interval.draw(ax,'magenta')
+        robot3.interval_hull.draw(ax,'magenta')
         robot4.interval.draw(ax,'black')
+        robot4.interval_hull.draw(ax,'black')
 
-        v1,w1 = robot1.collision_free_command(ax)
+        # v1,w1 = robot1.collision_free_command()
             
 
-        v2,w2 = robot2.collision_free_command(ax)
+        # v2,w2 = robot2.collision_free_command()
 
-        v3,w3 = robot3.collision_free_command(ax)
+        # v3,w3 = robot3.collision_free_command()
 
-        v4,w4 = robot4.collision_free_command(ax)
+        # v4,w4 = robot4.collision_free_command()
 
-        robot1.move(v1,w1)
-        robot2.move(v2,w2)
-        robot3.move(v3,w3)
-        robot4.move(v4,w4)
-        # if i%(robot1.Δt//robot1.dt) == 0:
-        #     v1,w1 = robot1.collision_free_command(ax)
+        # robot1.move(v1,w1)
+        # robot2.move(v2,w2)
+        # robot3.move(v3,w3)
+        # robot4.move(v4,w4)
+        if i%(robot1.Δt//robot1.dt) == 0:
+            v1,w1 = robot1.collision_free_command2(ax)
             
 
-        #     # v2,w2 = robot2.collision_free_command(ax)
+            v2,w2 = robot2.collision_free_command2(ax)
 
-        #     # v3,w3 = robot3.collision_free_command(ax)
+            v3,w3 = robot3.collision_free_command2(ax)
 
-        #     # v4,w4 = robot4.collision_free_command(ax)
+            v4,w4 = robot4.collision_free_command2(ax)
         #     robot1.move(v1,w1)
         #     # robot2.move(v2,w2)
         #     # robot3.move(v3,w3)
         #     # robot4.move(v4,w4)    
         # plt.savefig(f'captures/fig{i}.png',bbox_inches='tight',dpi=133)
 
-        #robot1.move2(v1,w1)
-        # robot2.move2(v2,w2)
-        # robot3.move2(v3,w3)
-        # robot4.move2(v4,w4)
+        robot1.move2(v1,w1)
+        robot2.move2(v2,w2)
+        robot3.move2(v3,w3)
+        robot4.move2(v4,w4)
     
         # plt.axis("off")
         # plt.savefig(f'captures/fig{i}.png',bbox_inches='tight',dpi=133)
